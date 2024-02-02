@@ -1,7 +1,10 @@
-
 import pandas as pd
 from pathlib import Path
 import click 
+import warnings
+
+# To suppress the specific warning, uncomment the following line
+warnings.filterwarnings("ignore", message="Workbook contains no default style, apply openpyxl's default")
 
 # Assign the path where the files exists
 # Load the Excel file
@@ -34,21 +37,16 @@ def parse_work_tags_column(file_path):
 
 # Using the click library to create a command line interface
 @click.command()
-@click.option('--expense', '-e', help='The expense file to process')
-@click.option('--obligations', '-o', help='The obligations file to process')
-def process_files(expense, obligations):
-    expense_df = parse_work_tags_column(expense)
-    obligation_df = parse_work_tags_column(obligations)
-
+@click.option('--input', '-i', type=click.Path(exists=True), help='The file to process')
+@click.option('--output', '-o', default='results.xlsx', help='The output file to save the results')
+@click.option('--sheet', '-s', default='expenses', help='The sheet name to save the results')
+def process_files(input, output, sheet):
+    expense_df = parse_work_tags_column(input)
+    
     # Create an Excel writer object
-    with pd.ExcelWriter("results.xlsx") as writer:
+    with pd.ExcelWriter(output) as writer:
         # Write the DataFrame to the Excel file in a new sheet
         expense_df.to_excel(writer, sheet_name='Expense', index=False)
-        obligation_df.to_excel(writer, sheet_name='Obligations', index=False)
-
-        # Write the pivot table to the Excel file
-        expense_pivot.to_excel(writer, sheet_name='Expense Pivot')
-        obligation_pivot.to_excel(writer, sheet_name='Obligations Pivot')
 
 
 if __name__ == '__main__':
