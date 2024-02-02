@@ -2,6 +2,7 @@ import pandas as pd
 from pathlib import Path
 import click 
 import warnings
+import os
 
 # To suppress the specific warning, uncomment the following line
 warnings.filterwarnings("ignore", message="Workbook contains no default style, apply openpyxl's default")
@@ -11,7 +12,8 @@ warnings.filterwarnings("ignore", message="Workbook contains no default style, a
 def parse_work_tags_column(file_path):
     df = pd.read_excel(file_path)
 
-    # Create a function to parse the work tags column
+    # This function will parse the 'work tags' column into separate columns
+    #  it's called as a vector operation on the 'work tags' column
     def parse_work_tags(work_tags):
         tag_dict = {}
         lines = work_tags.split('\n')
@@ -37,10 +39,21 @@ def parse_work_tags_column(file_path):
 
 # Using the click library to create a command line interface
 @click.command()
-@click.option('--input', '-i', type=click.Path(exists=True), help='The file to process')
+@click.argument('input', required=True, type=click.Path(exists=True))
+#@click.option('--input', '-i', required=True, type=click.Path(exists=True), help='The file to process')
 @click.option('--output', '-o', default='results.xlsx', help='The output file to save the results')
 @click.option('--sheet', '-s', default='expenses', help='The sheet name to save the results')
 def process_files(input, output, sheet):
+    # If no input file is provided, use the default file
+    if input is None:
+        raise click.UsageError("Please provide an input file.")
+    
+    if not Path.exists(Path(input)):
+            raise click.UsageError(f"The default input file '{input}' does not exist. Please provide an input file.")
+    
+    # Proceed with processing the file
+    print(f"Processing file: {input}")
+    print(f"Results will be saved in: {output}, Sheet: {sheet}")
     expense_df = parse_work_tags_column(input)
     
     # Create an Excel writer object
@@ -48,6 +61,8 @@ def process_files(input, output, sheet):
         # Write the DataFrame to the Excel file in a new sheet
         expense_df.to_excel(writer, sheet_name='Expense', index=False)
 
-
+    # Complete
+    print("Processing complete.")
+    
 if __name__ == '__main__':
     process_files()
