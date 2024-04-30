@@ -25,41 +25,46 @@ def parse_work_tags_column(file_path):
 
     # Apply the parse_work_tags function to the 'work tags' column and expand it into separate columns
     df_worktags = df['Worktags'].apply(parse_work_tags).apply(pd.Series)
-
-    # Concatenate the original DataFrame with the parsed work tags columns
-    result_df = pd.concat([df, df_worktags], axis=1)
-
     # Drop the original 'work tags' column if needed
     columns_to_drop = ['Worktags','Accounting Date', 'Operational Transaction', 'Journal',
        'Revenue Category','AASIS Code', 'Cost Center', 'Designated','Earning', 'Employee Type', 'Fund', 'Job Profile',
        'Location', 'NACUBO Function', 'Pay Group', 'Pay Rate Type','Personnel Services Restrictions', 'Position', 'Deduction (Workday Owned)', 'Fringe Basis']
-    result_df.drop(columns=columns_to_drop, inplace=True,errors='ignore')
+    df_worktags.drop(columns=columns_to_drop, inplace=True,errors='ignore')
+
+    # Concatenate the original DataFrame with the parsed work tags columns
+    result_df = pd.concat([df, df_worktags], axis=1)
 
     return result_df
 
 # Using the click library to create a command line interface
 @click.command()
-@click.argument('input', required=True, type=click.Path(exists=True))
+@click.argument('expenses',  required=True, type=click.Path(exists=True))
+@click.argument('obligations', required=True, type=click.Path(exists=True))
 #@click.option('--input', '-i', required=True, type=click.Path(exists=True), help='The file to process')
 @click.option('--output', '-o', default='results.xlsx', help='The output file to save the results')
 @click.option('--sheet', '-s', default='expenses', help='The sheet name to save the results')
-def process_files(input, output, sheet):
+def process_files(expenses, obligations, output, sheet):
     # If no input file is provided, use the default file
     if input is None:
         raise click.UsageError("Please provide an input file.")
     
-    if not Path.exists(Path(input)):
-            raise click.UsageError(f"The default input file '{input}' does not exist. Please provide an input file.")
+    if not Path.exists(Path(expenses)):
+        raise click.UsageError(f"The default input file '{expenses}' does not exist. Please provide an input file.")
+    if not Path.exists(Path(obligations)):
+        raise click.UsageError(f"The default input file '{obligations}' does not exist. Please provide an input file.")        
     
     # Proceed with processing the file
-    print(f"Processing file: {input}")
+    print(f"Processing file: {expenses} and {obligations}")
     print(f"Results will be saved in: {output}, Sheet: {sheet}")
-    expense_df = parse_work_tags_column(input)
+    expense_df = parse_work_tags_column(expenses).reset_index(drop=True)
+    obligation_df = parse_work_tags_column(obligations).reset_index(drop=True)
     
+    combined = pd.concat([expense_df, obligation_df], ignore_index=True, sort=False)
+        
     # Create an Excel writer object
     with pd.ExcelWriter(output) as writer:
         # Write the DataFrame to the Excel file in a new sheet
-        expense_df.to_excel(writer, sheet_name='Expense', index=False)
+        combined.to_excel(writer, sheet_name='Expense', index=False)
 
     # Complete
     print("Processing complete.")
