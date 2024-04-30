@@ -1,0 +1,7 @@
+.PHONY: pyinstaller
+
+pyinstaller:
+	@pyinstaller --onefile budget_fix.py
+	@mv dist/budget_fix budget_fix
+	@rm -rf build dist budget_fix.spec
+	@echo "Done"
